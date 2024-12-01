@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Circle Drawing Game</title>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      font-family: Arial, sans-serif;
+    }
+    canvas {
+      border: 1px solid black;
+    }
+    .button {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Draw a Circle Around the Point!</h1>
+  <canvas id="drawingCanvas" width="400" height="400"></canvas>
+  <div class="button">
+    <button id="checkCircle">Check Circle</button>
+  </div>
+  <p id="result"></p>
+
+  <script>
+    const canvas = document.getElementById("drawingCanvas");
+    const ctx = canvas.getContext("2d");
+    const resultElement = document.getElementById("result");
+    let isDrawing = false;
+    let points = [];
+
+    // Center point of the circle
+    const centerPoint = { x: canvas.width / 2, y: canvas.height / 2 };
+
+    // Draw guide point for the circle
+    function drawCenterPoint() {
+      ctx.beginPath();
+      ctx.arc(centerPoint.x, centerPoint.y, 5, 0, Math.PI * 2);
+      ctx.fillStyle = "red";
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    // Clear and redraw the canvas
+    function clearCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawCenterPoint();
+    }
+
+    // Initial draw of the center point
+    clearCanvas();
+
+    // Mouse event listeners
+    canvas.addEventListener("mousedown", (e) => {
+      isDrawing = true;
+      points = []; // Clear points on new draw
+      clearCanvas(); // Clear canvas and redraw the center point
+      points.push({ x: e.offsetX, y: e.offsetY });
+    });
+
+    canvas.addEventListener("mousemove", (e) => {
+      if (!isDrawing) return;
+      const x = e.offsetX;
+      const y = e.offsetY;
+      points.push({ x, y });
+
+      // Draw points
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "black";
+      ctx.lineJoin = "round";
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(points[points.length - 2].x, points[points.length - 2].y);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+    });
+
+    canvas.addEventListener("mouseup", () => {
+      isDrawing = false;
+    });
+
+    // Circle accuracy check
+    function calculateCircleAccuracy() {
+      if (points.length < 3) {
+        resultElement.innerText = "Not enough points to evaluate!";
+        return;
+      }
+
+      // Calculate average radius and deviation
+      const radii = points.map(
+        (point) =>
+          Math.sqrt(
+            Math.pow(point.x - centerPoint.x, 2) +
+              Math.pow(point.y - centerPoint.y, 2)
+          )
+      );
+      const averageRadius =
+        radii.reduce((sum, radius) => sum + radius, 0) / radii.length;
+
+      const deviation = Math.sqrt(
+        radii.reduce(
+          (sum, radius) => sum + Math.pow(radius - averageRadius, 2),
+          0
+        ) / radii.length
+      );
+
+      // Calculate accuracy (lower deviation -> higher accuracy)
+      const accuracy = Math.max(0, 100 - deviation * 10).toFixed(2);
+      resultElement.innerText = `Circle Accuracy: ${accuracy}%`;
+    }
+
+    // Button click event
+    document.getElementById("checkCircle").addEventListener("click", () => {
+      calculateCircleAccuracy();
+    });
+  </script>
+</body>
+</html>
