@@ -16,6 +16,7 @@
     }
     canvas {
       border: 1px solid black;
+      touch-action: none; /* Prevent default touch behaviors */
     }
     .button {
       margin-top: 20px;
@@ -58,19 +59,35 @@
     // Initial draw of the center point
     clearCanvas();
 
-    // Mouse event listeners
-    canvas.addEventListener("mousedown", (e) => {
-      isDrawing = true;
-      points = []; // Clear points on new draw
-      clearCanvas(); // Clear canvas and redraw the center point
-      points.push({ x: e.offsetX, y: e.offsetY });
-    });
+    // Get touch/mouse position relative to the canvas
+    function getPosition(event) {
+      if (event.touches) {
+        const touch = event.touches[0];
+        return {
+          x: touch.clientX - canvas.getBoundingClientRect().left,
+          y: touch.clientY - canvas.getBoundingClientRect().top,
+        };
+      }
+      return {
+        x: event.offsetX,
+        y: event.offsetY,
+      };
+    }
 
-    canvas.addEventListener("mousemove", (e) => {
+    // Start drawing
+    function startDrawing(event) {
+      isDrawing = true;
+      points = [];
+      clearCanvas(); // Clear canvas and redraw the center point
+      const pos = getPosition(event);
+      points.push(pos);
+    }
+
+    // Draw as the user moves their touch or mouse
+    function draw(event) {
       if (!isDrawing) return;
-      const x = e.offsetX;
-      const y = e.offsetY;
-      points.push({ x, y });
+      const pos = getPosition(event);
+      points.push(pos);
 
       // Draw points
       ctx.lineWidth = 2;
@@ -78,14 +95,16 @@
       ctx.lineJoin = "round";
       ctx.lineCap = "round";
       ctx.beginPath();
-      ctx.moveTo(points[points.length - 2].x, points[points.length - 2].y);
-      ctx.lineTo(x, y);
+      const prevPoint = points[points.length - 2];
+      ctx.moveTo(prevPoint.x, prevPoint.y);
+      ctx.lineTo(pos.x, pos.y);
       ctx.stroke();
-    });
+    }
 
-    canvas.addEventListener("mouseup", () => {
+    // Stop drawing
+    function stopDrawing() {
       isDrawing = false;
-    });
+    }
 
     // Circle accuracy check
     function calculateCircleAccuracy() {
@@ -116,6 +135,22 @@
       const accuracy = Math.max(0, 100 - deviation * 10).toFixed(2);
       resultElement.innerText = `Circle Accuracy: ${accuracy}%`;
     }
+
+    // Add event listeners for both touch and mouse inputs
+    canvas.addEventListener("mousedown", startDrawing);
+    canvas.addEventListener("mousemove", draw);
+    canvas.addEventListener("mouseup", stopDrawing);
+    canvas.addEventListener("mouseout", stopDrawing);
+
+    canvas.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      startDrawing(e);
+    });
+    canvas.addEventListener("touchmove", (e) => {
+      e.preventDefault();
+      draw(e);
+    });
+    canvas.addEventListener("touchend", stopDrawing);
 
     // Button click event
     document.getElementById("checkCircle").addEventListener("click", () => {
